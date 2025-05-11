@@ -1,14 +1,13 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 // Props are now just 'alerts' and 'selectedEventType' (for the message)
 function StormTable({ alerts, selectedEventType }) { 
   // The 'selectedEventType' prop is only needed for the no-alerts message now.
   // If 'alerts' is empty, it means either no alerts for the region or filter cleared them.
-
-  const handleCreateAdSet = (alert) => {
-    console.log("Create Ad Set for:", alert.properties?.headline, alert.id);
-    // Placeholder for future functionality
-  };
 
   return (
     <div>
@@ -40,17 +39,21 @@ function StormTable({ alerts, selectedEventType }) {
             {alerts.map((alert, index) => (
               <tr key={alert.id || index}>
                 <td>{alert.properties?.event}</td>
-                <td>{alert.properties?.headline}</td>
+                <td>{alert.properties?.headline || 'N/A'}</td>
                 <td>{alert.properties?.areaDesc}</td>
                 <td>{alert.properties?.severity}</td>
                 <td>{new Date(alert.properties?.effective).toLocaleString()}</td>
-                <td>
-                  <button 
-                    className="create-ad-set-button" 
-                    onClick={() => handleCreateAdSet(alert)}
-                  >
-                    Create Ad Set
-                  </button>
+                <td style={{ textAlign: 'center'}}>
+                  <Tooltip title="Create Ad Campaign">
+                    <IconButton 
+                      component={Link} 
+                      to={`/wizard/${alert.id}`} 
+                      color="primary"
+                      aria-label={`Create ad campaign for ${alert.properties?.event}`}
+                    >
+                      <AutoFixHighIcon />
+                    </IconButton>
+                  </Tooltip>
                 </td>
               </tr>
             ))}
