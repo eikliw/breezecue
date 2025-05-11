@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, IconButton, Tooltip, Chip, CircularProgress, Alert as MuiAlert } from '@mui/material';
+import { Box, Typography, Paper, IconButton, Tooltip, Chip, CircularProgress, Alert as MuiAlert, Avatar } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { collection, query, where, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useSnackbar } from 'notistack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LaunchIcon from '@mui/icons-material/RocketLaunch'; // RocketLaunch is a good fit for "Launch"
+import ImageIcon from '@mui/icons-material/Image'; // Placeholder icon
 import { useNavigate } from 'react-router-dom';
 
 const CampaignsPage = () => {
@@ -81,36 +82,58 @@ const CampaignsPage = () => {
   };
 
   const columns = [
-    { field: 'alertEvent', headerName: 'Alert Type', flex: 1, minWidth: 150 },
+    {
+        field: 'imageUrl',
+        headerName: 'Ad',
+        width: 80,
+        sortable: false,
+        disableColumnMenu: true,
+        renderCell: (params) => (
+            <Tooltip title={params.row.copy?.headline || 'Ad Visual'}>
+                <Avatar 
+                    src={params.value}
+                    alt={params.row.copy?.headline || 'Ad visual'}
+                    variant="rounded"
+                    sx={{ width: 56, height: 56, cursor: 'pointer' }}
+                    onClick={() => params.value && window.open(params.value, '_blank')} // Open image in new tab
+                >
+                    {!params.value && <ImageIcon />} { /* Placeholder if no image */}
+                </Avatar>
+            </Tooltip>
+        )
+    },
+    { field: 'alertEvent', headerName: 'Alert Type', flex: 0.8, minWidth: 130 },
     { 
       field: 'copy.headline',
       headerName: 'Headline',
-      flex: 2,
+      flex: 1.5,
       minWidth: 200,
       valueGetter: (params) => params.row.copy?.headline || 'N/A',
     },
     { 
       field: 'radius',
       headerName: 'Radius',
-      width: 100,
+      width: 90,
       valueFormatter: (params) => `${params.value} mi`,
     },
     {
       field: 'status',
       headerName: 'Status',
-      width: 120,
+      width: 110,
       renderCell: (params) => getStatusChip(params.value),
     },
     {
       field: 'createdAt',
       headerName: 'Created',
-      width: 180,
+      width: 170,
+      type: 'dateTime',
+      valueGetter: (params) => params.value?.toDate(), // for sorting/filtering
       valueFormatter: (params) => params.value ? new Date(params.value.toDate()).toLocaleString() : 'N/A',
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 130,
       sortable: false,
       disableColumnMenu: true,
       renderCell: (params) => (
@@ -158,11 +181,11 @@ const CampaignsPage = () => {
   }
 
   return (
-    <Box sx={{ padding: { xs: 1, sm: 2, md: 3 }, height: 'calc(100vh - 120px)', width: '100%' }}>
+    <Box sx={{ padding: { xs: 1, sm: 2, md: 3 }, height: 'calc(100vh - 100px)', width: '100%' }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ mb: {xs: 2, md:3} }}>
         My Campaigns
       </Typography>
-      <Paper sx={{ height: '100%', width: '100%' }} elevation={2}>
+      <Paper sx={{ height: 'calc(100% - 48px)', width: '100%' }} elevation={2}>
         {campaigns.length === 0 && !loading ? (
             <Box sx={{textAlign: 'center', p:3}}>
                 <Typography>No campaigns found. Create one from the dashboard!</Typography>
