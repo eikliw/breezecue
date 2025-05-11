@@ -1,3 +1,36 @@
+# Project Title: Weather-Triggered Ads
+
+## Project Purpose
+
+This project aims to deliver advertisements that are dynamically triggered and tailored based on real-time weather conditions.
+
+## Quick Start
+
+To get the project running locally:
+
+1.  Install dependencies:
+    ```bash
+    npm install
+    ```
+2.  Run the development server:
+    ```bash
+    npm run dev
+    ```
+
+## Build & Deploy
+
+### Build
+
+To build the application for production:
+
+```bash
+npm run build
+```
+
+### Deployment
+
+The project can be deployed to various hosting platforms. (Deployment link placeholder - to be updated)
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
