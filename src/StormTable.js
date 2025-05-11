@@ -47,7 +47,7 @@ function StormTable({ alerts, selectedEventType }) {
                   <Tooltip title="Create Ad Campaign">
                     <IconButton 
                       component={Link} 
-                      to={`/wizard/${alert.id}`} 
+                      to={`/wizard/${encodeURIComponent(alert.id)}`} 
                       color="primary"
                       aria-label={`Create ad campaign for ${alert.properties?.event}`}
                     >

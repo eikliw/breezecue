@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import WeatherMap from './WeatherMap';
@@ -8,7 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import { US_REGIONS } from './regions'; // Import US_REGIONS for default
 
 // Firebase imports
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase'; // Assuming firebase.js is in src/
 
@@ -21,7 +21,8 @@ import CampaignsPage from './components/CampaignsPage'; // Import CampaignsPage
 
 // React Router
 import { Routes, Route, Navigate, Link as RouterLink } from 'react-router-dom';
-import { Button } from '@mui/material'; // For navigation button
+import { Button, Container, Paper, Typography, Box, CircularProgress } from '@mui/material'; // For navigation button and Login UI
+import GoogleIcon from '@mui/icons-material/Google'; // For Google Sign-In button
 
 // Simple hook to manage current user state
 const useAuth = () => {
@@ -101,7 +102,7 @@ const MainAppLayout = () => {
     <div className="App">
       {/* OnboardingDialog is now rendered in App before routing to MainAppLayout */}
       <header className="App-header">
-        <h1>WeatherAdNerd</h1>
+        <h1>BreezeCue</h1>
         <div className="App-header-nav">
           <Button component={RouterLink} to="/" color="inherit" sx={{color: "white"}}>Dashboard</Button>
           <Button component={RouterLink} to="/campaigns" color="inherit" sx={{color: "white", marginLeft: '10px'}}>Campaigns</Button>
@@ -206,25 +207,61 @@ function App() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      // User will be redirected or onAuthStateChanged will pick up the new user.
+      // useEnsureUserDoc will handle user document creation.
+    } catch (error) {
+      console.error("Error during Google Sign-In:", error);
+      // Handle errors here, e.g., show a notification to the user
+    }
+  };
+
   if (loadingAuth) {
-    return <div className="App-loading">Loading authentication...</div>;
+    return (
+      <Container component="main" maxWidth="xs" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <CircularProgress />
+        <Typography sx={{ mt: 2 }}>Loading authentication...</Typography>
+      </Container>
+    );
   }
 
   if (!user) {
     return (
-      <div className="App-login-prompt">
-        <h2>Welcome to WeatherAdNerd</h2>
-        <p>Please sign in to continue.</p>
-        <Button variant="contained" onClick={() => alert('Login functionality to be implemented. E.g., using Firebase Google Sign-In.')}>
-            Sign In (Placeholder)
-        </Button>
-      </div>
+      <Container component="main" maxWidth="xs" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <Paper elevation={3} sx={{ padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          <Typography component="h1" variant="h5">
+            Welcome to BreezeCue
+          </Typography>
+          <Box sx={{ mt: 1, mb: 3 }}>
+            <Typography color="textSecondary">
+              Please sign in to continue.
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleSignIn}
+            fullWidth
+            sx={{ backgroundColor: '#4285F4', color: 'white', '&:hover': { backgroundColor: '#357ae8' } }}
+          >
+            Sign In with Google
+          </Button>
+        </Paper>
+      </Container>
     );
   }
   
   // If user is logged in, but we are still waiting for their document (e.g. first login, doc creation pending)
   if (loadingDoc && !needsRegionOnboarding) {
-      return <div className="App-loading">Loading user data...</div>;
+      return (
+        <Container component="main" maxWidth="xs" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+          <CircularProgress />
+          <Typography sx={{ mt: 2 }}>Loading user data...</Typography>
+        </Container>
+      );
   }
 
 

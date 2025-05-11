@@ -17,7 +17,8 @@ const steps = ['Preview Alert', 'Set Targeting', 'Confirm & Save'];
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const WizardLayout = () => {
-  const { alertId } = useParams();
+  const { alertId: encodedAlertId } = useParams();
+  const alertId = decodeURIComponent(encodedAlertId);
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { alerts, loadingAlerts, errorAlerts } = useAlerts();

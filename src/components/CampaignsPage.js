@@ -7,14 +7,12 @@ import { useSnackbar } from 'notistack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LaunchIcon from '@mui/icons-material/RocketLaunch'; // RocketLaunch is a good fit for "Launch"
 import ImageIcon from '@mui/icons-material/Image'; // Placeholder icon
-import { useNavigate } from 'react-router-dom';
 
 const CampaignsPage = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
-  const navigate = useNavigate();
   const currentUser = auth.currentUser;
 
   useEffect(() => {
