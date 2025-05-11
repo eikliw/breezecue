@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Stepper, Step, StepLabel, Typography, Paper, Button, CircularProgress, Alert as MuiAlert } from '@mui/material';
+import { Box, Stepper, Step, StepLabel, Typography, Paper, Button, CircularProgress, Alert as MuiAlert, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useSnackbar } from 'notistack';
 import { useAlerts } from '../contexts/AlertsContext';
 import { db, auth } from '../firebase'; // Import db and auth
@@ -153,7 +154,19 @@ const WizardLayout = () => {
 
   return (
     <Box sx={{ width: '100%', padding: { xs: 1, sm: 2, md: 3 } }}>
-      <Paper elevation={3} sx={{ padding: { xs: 1.5, sm: 2.5, md: 3 } }}>
+      <Paper elevation={3} sx={{ padding: { xs: 1.5, sm: 2.5, md: 3 }, position: 'relative' }}>
+        <IconButton
+          aria-label="close wizard"
+          onClick={() => navigate('/')}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
         <Typography variant="h5" component="h1" gutterBottom sx={{ textAlign: 'center' , mb: {xs: 2, md:3}}}>
           Create Ad: <Typography component="span" color="primary.main">{alertDetails.properties?.event || 'N/A'}</Typography>
         </Typography>
