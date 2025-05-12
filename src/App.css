@@ -92,8 +92,8 @@ main {
   position: absolute;
   top: 20px; /* Distance from top of main */
   right: 20px; /* Distance from right of main */
-  width: 45%; /* Increased default width for regional views */
-  max-width: 700px; /* Increased default max-width */
+  width: 50%; /* Increased from 45% */
+  max-width: 800px; /* Increased from 700px */
   height: calc(100% - 40px); /* Full height of main minus top/bottom margins/padding */
   padding: 20px; /* Slightly increased padding for the sidebar itself */
   background-color: rgba(249, 249, 249, 0.97); /* Slightly more opaque */
@@ -190,6 +190,43 @@ main {
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
+/* State Filter Styles - similar to storm filter */
+.state-filter-container {
+  display: flex;
+  align-items: center;
+  flex-grow: 1; 
+}
+
+.state-filter-label {
+  margin-right: 10px;
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95em;
+  flex-shrink: 0; 
+}
+
+.state-filter-select {
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #495057;
+  flex-grow: 1; /* Allow select to fill its container */
+  min-width: 150px; /* Prevent from becoming too small */
+}
+
+.state-filter-select:disabled {
+  background-color: #e9ecef; /* Indicate disabled state */
+  cursor: not-allowed;
+}
+
+.state-filter-select:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
 /* New styles for the row containing both selectors */
 .sidebar-controls-row {
   display: flex;
@@ -215,6 +252,7 @@ main {
   border-collapse: collapse;
   margin-top: 15px; /* Space below the h3 */
   font-size: 0.9em; /* Slightly smaller font for table data */
+  table-layout: fixed; /* Added: Force table to obey width */
 }
 
 .storm-table th,
@@ -223,6 +261,8 @@ main {
   padding: 10px 12px;
   text-align: left;
   vertical-align: top;
+  word-wrap: break-word; /* Added: Allow long words/text to wrap */
+  white-space: normal; /* Added: Ensure text wraps normally */
 }
 
 .storm-table th {

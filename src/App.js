@@ -24,6 +24,28 @@ import SettingsPage from './components/SettingsPage'; // Import SettingsPage
 import { Routes, Route, Navigate, Link as RouterLink } from 'react-router-dom';
 import { Button, Container, Paper, Typography, Box, CircularProgress, IconButton } from '@mui/material'; // For navigation button and Login UI
 import GoogleIcon from '@mui/icons-material/Google'; // For Google Sign-In button
+import RefreshIcon from '@mui/icons-material/Refresh'; // Import RefreshIcon
+
+// Define US States (simple list for dropdown)
+const US_STATES = [
+    { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' }, { name: 'Arizona', abbr: 'AZ' }, 
+    { name: 'Arkansas', abbr: 'AR' }, { name: 'California', abbr: 'CA' }, { name: 'Colorado', abbr: 'CO' }, 
+    { name: 'Connecticut', abbr: 'CT' }, { name: 'Delaware', abbr: 'DE' }, { name: 'Florida', abbr: 'FL' }, 
+    { name: 'Georgia', abbr: 'GA' }, { name: 'Hawaii', abbr: 'HI' }, { name: 'Idaho', abbr: 'ID' }, 
+    { name: 'Illinois', abbr: 'IL' }, { name: 'Indiana', abbr: 'IN' }, { name: 'Iowa', abbr: 'IA' }, 
+    { name: 'Kansas', abbr: 'KS' }, { name: 'Kentucky', abbr: 'KY' }, { name: 'Louisiana', abbr: 'LA' }, 
+    { name: 'Maine', abbr: 'ME' }, { name: 'Maryland', abbr: 'MD' }, { name: 'Massachusetts', abbr: 'MA' }, 
+    { name: 'Michigan', abbr: 'MI' }, { name: 'Minnesota', abbr: 'MN' }, { name: 'Mississippi', abbr: 'MS' }, 
+    { name: 'Missouri', abbr: 'MO' }, { name: 'Montana', abbr: 'MT' }, { name: 'Nebraska', abbr: 'NE' }, 
+    { name: 'Nevada', abbr: 'NV' }, { name: 'New Hampshire', abbr: 'NH' }, { name: 'New Jersey', abbr: 'NJ' }, 
+    { name: 'New Mexico', abbr: 'NM' }, { name: 'New York', abbr: 'NY' }, { name: 'North Carolina', abbr: 'NC' }, 
+    { name: 'North Dakota', abbr: 'ND' }, { name: 'Ohio', abbr: 'OH' }, { name: 'Oklahoma', abbr: 'OK' }, 
+    { name: 'Oregon', abbr: 'OR' }, { name: 'Pennsylvania', abbr: 'PA' }, { name: 'Rhode Island', abbr: 'RI' }, 
+    { name: 'South Carolina', abbr: 'SC' }, { name: 'South Dakota', abbr: 'SD' }, { name: 'Tennessee', abbr: 'TN' }, 
+    { name: 'Texas', abbr: 'TX' }, { name: 'Utah', abbr: 'UT' }, { name: 'Vermont', abbr: 'VT' }, 
+    { name: 'Virginia', abbr: 'VA' }, { name: 'Washington', abbr: 'WA' }, { name: 'West Virginia', abbr: 'WV' }, 
+    { name: 'Wisconsin', abbr: 'WI' }, { name: 'Wyoming', abbr: 'WY' }
+];
 
 // Simple hook to manage current user state
 const useAuth = () => {
@@ -80,21 +102,59 @@ const useUserDoc = (uid) => {
   return { userDoc, loadingDoc, docExists, userDocRef };
 };
 
-// Main application layout component (previously inline in App)
-const MainAppLayout = () => {
-  const { alerts, loadingAlerts, errorAlerts } = useAlerts(); // Use alerts from context
+// Main application layout component
+const MainAppLayout = ({ onRegionSelectForFetch, onRefresh }) => {
+  const { alerts, loadingAlerts, errorAlerts } = useAlerts();
   const [selectedRegionKey, setSelectedRegionKey] = useState('ALL');
   const [selectedEventType, setSelectedEventType] = useState('ALL');
+  const [selectedState, setSelectedState] = useState('ALL'); // State for state filter
 
-  // SelectedRegionKey is managed here for now, but could be global if needed
-  // This component now receives alerts from context, App.js useEffect for fetching is removed/moved to AlertsProvider
-
-  const handleRegionChange = (regionKey) => setSelectedRegionKey(regionKey);
+  const handleRegionChange = (regionKey) => {
+    setSelectedRegionKey(regionKey);
+    setSelectedState('ALL'); // Reset state filter when region changes
+    if (onRegionSelectForFetch) {
+      onRegionSelectForFetch(regionKey);
+    }
+  };
   const handleEventTypeChange = (eventType) => setSelectedEventType(eventType);
+  const handleStateChange = (stateAbbr) => setSelectedState(stateAbbr);
 
   const currentRegion = US_REGIONS[selectedRegionKey];
   const eventTypesForFilter = ['ALL', ...new Set(alerts.map(alert => alert.properties?.event).filter(Boolean))];
-  const filteredAlerts = selectedEventType === 'ALL' ? alerts : alerts.filter(alert => alert.properties?.event === selectedEventType);
+  
+  // Updated Filtering Logic
+  let filteredAlerts = alerts;
+  // 1. Filter by Event Type
+  if (selectedEventType !== 'ALL') {
+    filteredAlerts = filteredAlerts.filter(alert => alert.properties?.event === selectedEventType);
+  }
+  // 2. Filter by State (More Robustly)
+  if (selectedState !== 'ALL') {
+    filteredAlerts = filteredAlerts.filter(alert => {
+      // First, try to match using geocode.UGC (most reliable)
+      const ugcCodes = alert.properties?.geocode?.UGC;
+      if (ugcCodes && Array.isArray(ugcCodes)) {
+        if (ugcCodes.some(code => typeof code === 'string' && code.startsWith(selectedState))) {
+          return true; // Found a match in UGC
+        }
+      }
+
+      // Fallback: Check areaDesc (less reliable, but good for broader matches)
+      const areaDesc = alert.properties?.areaDesc;
+      if (areaDesc && typeof areaDesc === 'string') {
+        // Split areaDesc by common delimiters like semicolon or comma
+        const areas = areaDesc.split(/[;,]+/);
+        // Check if any part contains the state abbreviation as a whole word, case-insensitive
+        const stateRegex = new RegExp(`\\b${selectedState}\\b`, 'i');
+        if (areas.some(areaSegment => stateRegex.test(areaSegment.trim()))) {
+          return true; // Found a match in areaDesc segments
+        }
+      }
+      
+      return false; // No match found in either UGC or areaDesc
+    });
+  }
+
   const sidebarClassName = selectedRegionKey === 'ALL' ? 'App-sidebar sidebar-wide' : 'App-sidebar';
   
   // The useAuth hook and related logic (OnboardingDialog) will remain in App to control access to MainAppLayout vs WizardLayout
@@ -123,13 +183,24 @@ const MainAppLayout = () => {
         </div>
         <div className={sidebarClassName}>
           <div className="sidebar-controls-row">
-            <RegionSelector
-              selectedRegion={selectedRegionKey}
-              onRegionChange={handleRegionChange}
-            />
+            <div className="region-selector-container">
+              <label htmlFor="region-select" className="region-selector-label">Region:</label>
+              <select
+                id="region-select"
+                className="region-selector-select"
+                value={selectedRegionKey}
+                onChange={(e) => handleRegionChange(e.target.value)}
+              >
+                <option value="ALL">All USA</option>
+                {Object.entries(US_REGIONS).filter(([key]) => key !== 'ALL').map(([key, region]) => (
+                  <option key={key} value={key}>{region.name}</option>
+                ))}
+              </select>
+            </div>
+            
             {eventTypesForFilter && eventTypesForFilter.length > 1 && (
               <div className="storm-filter-container">
-                <label htmlFor="event-type-filter" className="storm-filter-label">Filter by Event:</label>
+                <label htmlFor="event-type-filter" className="storm-filter-label">Event:</label>
                 <select
                   id="event-type-filter"
                   className="storm-filter-select"
@@ -144,13 +215,39 @@ const MainAppLayout = () => {
                 </select>
               </div>
             )}
+            
+            <div className="state-filter-container">
+              <label htmlFor="state-filter" className="state-filter-label">State:</label>
+              <select
+                id="state-filter"
+                className="state-filter-select"
+                value={selectedState}
+                onChange={(e) => handleStateChange(e.target.value)}
+                disabled={selectedRegionKey === 'ALL'}
+              >
+                <option value="ALL">All States</option>
+                {US_STATES.map(state => (
+                  <option key={state.abbr} value={state.abbr}>{state.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <IconButton 
+              onClick={onRefresh} 
+              aria-label="Refresh Alerts" 
+              color="primary" 
+              disabled={loadingAlerts}
+              title="Refresh Alerts"
+              sx={{ ml: 1 }}
+            >
+              {loadingAlerts ? <CircularProgress size={24} /> : <RefreshIcon />}
+            </IconButton>
           </div>
-          {loadingAlerts && <p>Loading alerts for {currentRegion?.name || 'selected area'}...</p>}
+          {loadingAlerts && <p>Loading alerts...</p>}
           {errorAlerts && <p style={{color: 'red'}}>{errorAlerts}</p>}
           {!loadingAlerts && !errorAlerts &&
             <StormTable
-              alerts={filteredAlerts} // This now comes from useAlerts() via MainAppLayout
-              selectedRegion={currentRegion}
+              alerts={filteredAlerts}
               selectedEventType={selectedEventType}
             />
           }
@@ -166,21 +263,29 @@ function App() {
   const { userDoc, loadingDoc, docExists, userDocRef } = useUserDoc(user?.uid);
   
   const { setAlerts, setLoadingAlerts, setErrorAlerts } = useAlerts();
-  const [selectedRegionForFetch, setSelectedRegionForFetch] = useState('ALL'); // Used by fetchAlerts
+  const [selectedRegionForFetch, setSelectedRegionForFetch] = useState('ALL');
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // State to trigger refresh
 
-   useEffect(() => {
-    // This effect now sets data in AlertsContext
+  // Function to increment the trigger, causing useEffect to re-run
+  const triggerRefresh = () => {
+    console.log('Triggering alert refresh...');
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  useEffect(() => {
     const fetchAlerts = async () => {
-      const currentRegionDetails = US_REGIONS[selectedRegionForFetch]; // Use state for fetching
+      const currentRegionDetails = US_REGIONS[selectedRegionForFetch];
       let apiUrl = 'https://api.weather.gov/alerts/active';
       if (selectedRegionForFetch !== 'ALL' && currentRegionDetails?.areaCodes?.length > 0) {
         apiUrl += `?area=${currentRegionDetails.areaCodes.join(',')}`;
       }
+      console.log(`Fetching alerts from: ${apiUrl}`);
+      setLoadingAlerts(true);
+      setErrorAlerts(null);
       try {
-        setLoadingAlerts(true);
-        setErrorAlerts(null);
         const response = await axios.get(apiUrl, { headers: { 'Accept': 'application/geo+json' } });
         setAlerts(response.data.features || []);
+        console.log(`Fetched ${response.data.features?.length || 0} alerts.`);
       } catch (err) {
         console.error(`Error fetching active alerts for ${selectedRegionForFetch}:`, err);
         setErrorAlerts(`Failed to fetch weather alerts. Please try again later.`);
@@ -189,13 +294,8 @@ function App() {
         setLoadingAlerts(false);
       }
     };
-    // For now, let's fetch alerts once on mount, or when selectedRegionForFetch changes
-    // This selectedRegionForFetch would ideally be part of context or a global state
-    // if WizardLayout or other routes also need to trigger refetches based on different regions.
-    // For simplicity with current structure, MainAppLayout has its own selectedRegionKey for display filtering.
     fetchAlerts(); 
-  }, [selectedRegionForFetch, setAlerts, setLoadingAlerts, setErrorAlerts]);
-
+  }, [selectedRegionForFetch, refreshTrigger, setAlerts, setLoadingAlerts, setErrorAlerts]); // Added refreshTrigger
 
   const needsRegionOnboarding = user && !loadingAuth && docExists && !loadingDoc && userDoc && !userDoc.homeRegion;
   const needsBusinessTypeOnboarding = user && !loadingAuth && docExists && !loadingDoc && userDoc && userDoc.homeRegion && !userDoc.businessType;
@@ -322,7 +422,13 @@ function App() {
       />
       {!(needsRegionOnboarding || needsBusinessTypeOnboarding) && ( // Don't render routes until ALL onboarding is complete
         <Routes>
-          <Route path="/" element={<MainAppLayout />} />
+          <Route 
+            path="/" 
+            element={ <MainAppLayout 
+                          onRegionSelectForFetch={setSelectedRegionForFetch} 
+                          onRefresh={triggerRefresh} // Pass refresh trigger function
+                      /> } 
+          />
           <Route path="/wizard/:alertId" element={<WizardLayout />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
