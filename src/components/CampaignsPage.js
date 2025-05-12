@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, IconButton, Tooltip, Chip, CircularProgress, Alert as MuiAlert, Avatar } from '@mui/material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Box, Typography, Paper, IconButton, Tooltip, Chip, CircularProgress, Alert as MuiAlert, Avatar, Button } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { collection, query, where, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -7,6 +8,9 @@ import { useSnackbar } from 'notistack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LaunchIcon from '@mui/icons-material/RocketLaunch'; // RocketLaunch is a good fit for "Launch"
 import ImageIcon from '@mui/icons-material/Image'; // Placeholder icon
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'; // For error state
+import CampaignIcon from '@mui/icons-material/Campaign'; // Thematic icon for empty campaigns list
+import CloseIcon from '@mui/icons-material/Close'; // Import CloseIcon
 
 const CampaignsPage = () => {
   const [campaigns, setCampaigns] = useState([]);
@@ -14,6 +18,7 @@ const CampaignsPage = () => {
   const [error, setError] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
   const currentUser = auth.currentUser;
+  const navigate = useNavigate(); // Initialize navigate
 
   useEffect(() => {
     if (!currentUser) {
@@ -102,17 +107,33 @@ const CampaignsPage = () => {
     },
     { field: 'alertEvent', headerName: 'Alert Type', flex: 0.8, minWidth: 130 },
     { 
-      field: 'copy.headline',
+      field: 'copy',
       headerName: 'Headline',
       flex: 1.5,
       minWidth: 200,
-      valueGetter: (params) => params.row.copy?.headline || 'N/A',
+      valueGetter: (params) => {
+        if (!params || typeof params !== 'object') {
+          return 'N/A (no copy data)';
+        }
+        return params.headline !== undefined && params.headline !== null ? params.headline : 'N/A (no headline)';
+      },
     },
     { 
       field: 'radius',
       headerName: 'Radius',
       width: 90,
-      valueFormatter: (params) => `${params.value} mi`,
+      valueGetter: (params) => {
+        if (params.row && (params.row.radius !== undefined && params.row.radius !== null)) {
+          return params.row.radius;
+        }
+        return null;
+      },
+      valueFormatter: (params) => {
+        if (!params || params.value === undefined || params.value === null) {
+          return 'N/A';
+        }
+        return `${params.value} mi`;
+      },
     },
     {
       field: 'status',
@@ -125,8 +146,18 @@ const CampaignsPage = () => {
       headerName: 'Created',
       width: 170,
       type: 'dateTime',
-      valueGetter: (params) => params.value?.toDate(), // for sorting/filtering
-      valueFormatter: (params) => params.value ? new Date(params.value.toDate()).toLocaleString() : 'N/A',
+      valueFormatter: (params) => {
+        if (!params || !params.value) {
+          return 'N/A (no data)';
+        }
+        if (typeof params.value.toDate === 'function') {
+          const jsDate = params.value.toDate();
+          return jsDate.toLocaleString();
+        } else if (params.value instanceof Date) {
+          return params.value.toLocaleString();
+        }
+        return 'N/A (invalid date)';
+      },
     },
     {
       field: 'actions',
@@ -159,14 +190,25 @@ const CampaignsPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress /> <Typography sx={{ ml: 2 }}>Loading campaigns...</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 120px)', flexDirection: 'column' }}>
+        <CircularProgress /> <Typography sx={{ mt: 2 }}>Loading your campaigns...</Typography>
       </Box>
     );
   }
 
   if (error) {
-    return <MuiAlert severity="error" sx={{m:2}}>{error}</MuiAlert>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 120px)', flexDirection: 'column', p: 3, textAlign: 'center' }}>
+        <ErrorOutlineIcon sx={{ fontSize: 60, color: 'error.main', mb: 2 }} />
+        <Typography variant="h6" gutterBottom>
+          Oops! Something went wrong.
+        </Typography>
+        <Typography color="textSecondary" sx={{mb: 2}}>
+          {error} {/* Display the actual error message */}
+        </Typography>
+        <Button variant="outlined" onClick={() => navigate('/')}>Go to Dashboard</Button>
+      </Box>
+    );
   }
   
   if (!currentUser) {
@@ -178,15 +220,49 @@ const CampaignsPage = () => {
       );
   }
 
+  // For debugging: Log the campaigns data just before rendering the DataGrid
+  console.log('Campaigns data for DataGrid:', campaigns);
+
   return (
-    <Box sx={{ padding: { xs: 1, sm: 2, md: 3 }, height: 'calc(100vh - 100px)', width: '100%' }}>
+    <Box sx={{ padding: { xs: 1, sm: 2, md: 3 }, height: 'calc(100vh - 100px)', width: '100%', position: 'relative' }}>
+       <IconButton
+          aria-label="close campaigns page"
+          onClick={() => navigate('/')}
+          sx={{
+            position: 'absolute',
+            right: { xs: 16, sm: 24, md: 32 }, // Adjust based on padding
+            top: { xs: 8, sm: 16, md: 24 },   // Adjust based on padding
+            zIndex: 1, // Ensure it's above other content if necessary
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+
       <Typography variant="h4" component="h1" gutterBottom sx={{ mb: {xs: 2, md:3} }}>
         My Campaigns
       </Typography>
       <Paper sx={{ height: 'calc(100% - 48px)', width: '100%' }} elevation={2}>
         {campaigns.length === 0 && !loading ? (
-            <Box sx={{textAlign: 'center', p:3}}>
-                <Typography>No campaigns found. Create one from the dashboard!</Typography>
+            <Box sx={{
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                height: '100%', 
+                p:3, 
+                textAlign: 'center'
+            }}>
+                <CampaignIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} /> 
+                <Typography variant="h5" component="div" gutterBottom sx={{ fontWeight: 500 }}>
+                    No Campaigns Found
+                </Typography>
+                <Typography color="text.secondary" sx={{mb:3, maxWidth: '400px'}}>
+                    Ready to launch your first ad? Start by finding a weather alert on the dashboard.
+                </Typography>
+                <Button variant="contained" component={RouterLink} to="/" startIcon={<LaunchIcon />}>
+                    Find Alerts & Create Campaign
+                </Button>
             </Box>
         ) : (
         <DataGrid
@@ -196,7 +272,7 @@ const CampaignsPage = () => {
           rowsPerPageOptions={[5, 10, 20]}
           checkboxSelection={false} // Disable checkbox selection if not needed
           disableSelectionOnClick
-          autoHeight={false} // Set to false to fill Paper height
+          autoHeight={true} // Changed from false to true
           sx={{ border: 0 }} // Remove default border if Paper provides one
         />
         )}

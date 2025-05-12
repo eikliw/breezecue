@@ -1,0 +1,182 @@
+[
+  {
+    "businessType": "Roofing",
+    "name": "Hail Damage Inspection",
+    "trigger": "hail >= 0.75\"",
+    "copy": {
+      "headline": "Free Roof Inspection After Hail",
+      "description": "Recent hail may have damaged your roof. Book a free, no-obligation inspection within 24 hours to assess any potential damage."
+    }
+  },
+  {
+    "businessType": "Roofing",
+    "name": "High Wind Damage Check",
+    "trigger": "wind_speed >= 50mph",
+    "copy": {
+      "headline": "Wind Damage Roof Check Available",
+      "description": "Strong winds can cause unseen roof damage. Schedule a complimentary inspection today."
+    }
+  },
+  {
+    "businessType": "Auto-Glass",
+    "name": "Post-Hail Chip Repair",
+    "trigger": "hail >= 0.5\"",
+    "copy": {
+      "headline": "Windshield Chip Repair",
+      "description": "Hail can chip your windshield. Get it repaired quickly to prevent cracks from spreading. Book now!"
+    }
+  },
+  {
+    "businessType": "Auto-Glass",
+    "name": "Freezing Rain Wiper Offer",
+    "trigger": "freezing_rain == true",
+    "copy": {
+      "headline": "New Wipers for Icy Conditions",
+      "description": "Ensure clear visibility during freezing rain. Get 15% off new wiper blades installation this week."
+    }
+  },
+  {
+    "businessType": "HVAC",
+    "name": "AC Check Before Heatwave",
+    "trigger": "temperature_forecast_48h_max > 85F",
+    "copy": {
+      "headline": "Beat the Heat! AC Tune-Up",
+      "description": "A heatwave is coming. Ensure your AC is ready! Schedule a preventative maintenance check today."
+    }
+  },
+  {
+    "businessType": "HVAC",
+    "name": "Furnace Check Before Cold Snap",
+    "trigger": "temperature_forecast_48h_min < 32F",
+    "copy": {
+      "headline": "Stay Warm! Furnace Inspection",
+      "description": "Cold weather ahead. Is your furnace prepared? Book a check-up and ensure a cozy home."
+    }
+  },
+  {
+    "businessType": "Landscaping",
+    "name": "Post-Storm Cleanup",
+    "trigger": "wind_gust >= 40mph || heavy_rain_24h > 2in",
+    "copy": {
+      "headline": "Storm Debris Cleanup Service",
+      "description": "Storm left a mess? We offer fast and reliable yard cleanup services. Call us for a free quote."
+    }
+  },
+  {
+    "businessType": "Landscaping",
+    "name": "Spring Lawn Activation",
+    "trigger": "soil_temp_avg_7d > 50F && last_frost_passed == true",
+    "copy": {
+      "headline": "Awaken Your Lawn for Spring!",
+      "description": "Soil temperatures are perfect for spring lawn care. Book your aeration and fertilization service now."
+    }
+  },
+  {
+    "businessType": "Snow Removal",
+    "name": "Heavy Snowfall Alert",
+    "trigger": "snowfall_accumulation_24h >= 6in",
+    "copy": {
+      "headline": "Heavy Snow? We Clear It!",
+      "description": "Expecting heavy snow? Pre-book your snow removal service and save 10%."
+    }
+  },
+  {
+    "businessType": "Snow Removal",
+    "name": "Icy Conditions Driveway Salting",
+    "trigger": "freezing_rain == true || temperature < 32F && precipitation_24h > 0.1in",
+    "copy": {
+      "headline": "Icy Driveway? Safety First!",
+      "description": "Don't risk a fall! Professional salting and de-icing services available. Call now for rapid response."
+    }
+  },
+  {
+    "businessType": "Pest Control",
+    "name": "Mosquito Season Prep",
+    "trigger": "temperature_avg_7d > 60F && humidity_avg_7d > 50%",
+    "copy": {
+      "headline": "Mosquitoes Coming? Protect Your Yard!",
+      "description": "Warmer weather means mosquitoes. Schedule your yard treatment today for a bite-free summer."
+    }
+  },
+  {
+    "businessType": "Pest Control",
+    "name": "Rodent Alert - Cold Snap",
+    "trigger": "temperature_forecast_24h_min < 40F",
+    "copy": {
+      "headline": "Cold Weather Drives Rodents Indoors",
+      "description": "Prevent unwelcome guests this winter. Contact us for a home inspection and rodent-proofing."
+    }
+  },
+  {
+    "businessType": "Retail Apparel",
+    "name": "Rainy Day Cozy Collection",
+    "trigger": "rain_probability_24h > 60%",
+    "copy": {
+      "headline": "Rainy Day? Cozy Up in Style!",
+      "description": "Perfect weather for comfort. Shop our new collection of cozy sweaters and loungewear. 15% off today!"
+    }
+  },
+  {
+    "businessType": "Retail Apparel",
+    "name": "Sunny Weekend Fashion",
+    "trigger": "sunshine_hours_forecast_weekend >= 12h",
+    "copy": {
+      "headline": "Sunny Weekend Vibes!",
+      "description": "Get ready for the sunshine! Explore our latest summer collection. Special weekend discounts."
+    }
+  },
+  {
+    "businessType": "Events",
+    "name": "Indoor Event Promotion - Bad Weather",
+    "trigger": "rain_probability_48h > 70% || temperature_forecast_48h_max < 50F",
+    "copy": {
+      "headline": "Weatherproof Your Fun!",
+      "description": "Don't let bad weather spoil your plans. Check out our exciting indoor events happening this weekend!"
+    }
+  },
+  {
+    "businessType": "Events",
+    "name": "Outdoor Event Promotion - Good Weather",
+    "trigger": "rain_probability_48h < 20% && temperature_forecast_48h_max > 65F",
+    "copy": {
+      "headline": "Perfect Weather for Outdoor Fun!",
+      "description": "Sunshine and clear skies! Join us for our special outdoor events this weekend. Book tickets now!"
+    }
+  },
+  {
+    "businessType": "Insurance",
+    "name": "Storm Alert - Policy Review",
+    "trigger": "severe_weather_alert == true",
+    "copy": {
+      "headline": "Severe Weather Approaching: Is Your Policy Up-to-Date?",
+      "description": "Ensure you have the right coverage before the storm hits. Contact us for a free policy review."
+    }
+  },
+  {
+    "businessType": "Insurance",
+    "name": "End of Hurricane Season Check-up",
+    "trigger": "hurricane_season_end == true",
+    "copy": {
+      "headline": "Hurricane Season Over - Review Your Coverage",
+      "description": "Now is a good time to review your insurance needs and make adjustments for the coming year."
+    }
+  },
+  {
+    "businessType": "Logistics",
+    "name": "Inclement Weather Route Planning",
+    "trigger": "heavy_snow_warning == true || flood_warning == true",
+    "copy": {
+      "headline": "Weather Advisory: Potential Delays",
+      "description": "Due to severe weather, some shipments may be delayed. We are actively rerouting to minimize impact. Check status online."
+    }
+  },
+  {
+    "businessType": "Logistics",
+    "name": "High Wind Cargo Securement",
+    "trigger": "wind_speed_forecast_24h >= 40mph",
+    "copy": {
+      "headline": "High Wind Warning: Secure Your Cargo",
+      "description": "High winds expected. Please ensure all cargo is properly secured to prevent damage or loss during transit."
+    }
+  }
+] 
