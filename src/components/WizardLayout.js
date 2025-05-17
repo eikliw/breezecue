@@ -1,21 +1,54 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Stepper, Step, StepLabel, Typography, Paper, Button, CircularProgress, Alert as MuiAlert, IconButton } from '@mui/material';
+import { Box, Stepper, Step, StepLabel, Typography, Paper, Button, CircularProgress, Alert as MuiAlert, IconButton, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useSnackbar } from 'notistack';
 import { useAlerts } from '../contexts/AlertsContext';
 import { db, auth } from '../firebase'; // Import db and auth
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions'; // Import Firebase Functions SDK
+import { collection, addDoc, serverTimestamp, doc, onSnapshot } from 'firebase/firestore';
 
 // Import Step Components
 import PreviewStep from './PreviewStep';
 import TargetingStep from './TargetingStep';
 import ConfirmStep from './ConfirmStep';
 
-const steps = ['Preview Alert', 'Set Targeting', 'Confirm & Save'];
+// Simple hook to listen to the user document (copied from App.js - consider moving to hooks/)
+const useUserDoc = (uid) => {
+  const [userDoc, setUserDoc] = useState(null);
+  const [loadingDoc, setLoadingDoc] = useState(true);
+  const [docExists, setDocExists] = useState(false);
 
-// Mock function to simulate API call delay
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  useEffect(() => {
+    if (!uid) {
+      setUserDoc(null);
+      setLoadingDoc(false);
+      setDocExists(false);
+      return;
+    }
+    setLoadingDoc(true);
+    const docRef = doc(db, 'users', uid);
+    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setUserDoc(snapshot.data());
+        setDocExists(true);
+      } else {
+        setUserDoc(null);
+        setDocExists(false);
+      }
+      setLoadingDoc(false);
+    }, (error) => {
+      console.error("Error listening to user document:", error);
+      setUserDoc(null);
+      setLoadingDoc(false);
+      setDocExists(false);
+    });
+    return () => unsubscribe();
+  }, [uid]);
+  return { userDoc, loadingDoc, docExists };
+};
+
+const steps = ['Preview Alert', 'Set Targeting', 'Confirm & Save'];
 
 const WizardLayout = () => {
   const { alertId: encodedAlertId } = useParams();
@@ -23,16 +56,21 @@ const WizardLayout = () => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { alerts, loadingAlerts, errorAlerts } = useAlerts();
+  const user = auth.currentUser; // Get current user
+  const { userDoc, loadingDoc } = useUserDoc(user?.uid); // Fetch user document
 
   const [activeStep, setActiveStep] = useState(0);
   const [alertDetails, setAlertDetails] = useState(null);
   const [loadingInitialAlert, setLoadingInitialAlert] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState('gemini'); // Add state for AI provider
 
   // Consolidated campaign data state
   const [campaignData, setCampaignData] = useState({
     headline: '',
+    headlines: [], // Changed headline to headlines array
+    selectedHeadlineIndex: 0, // To track which headline is selected
     body: '',
     imageUrl: '',
     radius: 10, // Default radius
@@ -60,52 +98,105 @@ const WizardLayout = () => {
   }, []);
 
   const handleGenerateAICopy = async () => {
-    if (!alertDetails) {
-        enqueueSnackbar('Alert details not loaded yet.', { variant: 'error' });
+    if (!alertDetails || !userDoc) {
+        enqueueSnackbar('Alert details or user settings not loaded yet.', { variant: 'error' });
         return;
     }
     setIsGeneratingAI(true);
-    // Mock Genkit/OpenAI text call
-    await sleep(1500); // Simulate API latency
-    const mockHeadline = `ALERT: ${alertDetails.properties?.event || 'Weather Event'} in ${alertDetails.properties?.areaDesc || 'your area'}! Stay safe! (Mock)`;
-    const mockBody = `Important NWS update for ${alertDetails.properties?.event}: ${alertDetails.properties?.description || 'Take necessary precautions.'} This is a mock ad. Visit our site for safety tips!`;
-    
-    // Mock Images API call
-    await sleep(1000);
-    const mockImageUrl = `https://picsum.photos/seed/${Date.now()}/600/400`; // Random image
+    console.log(`Starting AI generation with ${selectedProvider}...`);
 
-    setCampaignData(prev => ({ 
-        ...prev,
-        headline: mockHeadline.substring(0,90),
-        body: mockBody.substring(0,180),
-        imageUrl: mockImageUrl 
-    }));
-    enqueueSnackbar('Mock AI content generated!', { variant: 'info' });
-    setIsGeneratingAI(false);
+    const functions = getFunctions();
+    const generateAdContent = httpsCallable(functions, 'generateAdContent');
+
+    // Prepare data for the cloud function
+    const requestData = {
+        alertDetails: { // Pass only necessary details, not the whole object if large
+            id: alertDetails.id,
+            properties: {
+                event: alertDetails.properties?.event,
+                areaDesc: alertDetails.properties?.areaDesc,
+                severity: alertDetails.properties?.severity,
+                description: alertDetails.properties?.description,
+            }
+        },
+        userSettings: { // Pass only relevant settings
+            companyName: userDoc.companyName,
+            businessType: userDoc.businessType,
+            contactPhone: userDoc.contactPhone,
+            companyWebsite: userDoc.companyWebsite,
+            // Add other relevant user settings if needed by the function
+        },
+        provider: selectedProvider // Pass the selected provider
+    };
+
+    try {
+        console.log("Calling generateAdContent with data:", requestData);
+        const result = await generateAdContent(requestData);
+        const data = result.data;
+
+        console.log("Received AI content:", data);
+
+        // Runtime checks for data structure (important in JS)
+        if (!data || !data.headlines || !Array.isArray(data.headlines) || data.headlines.length === 0 || typeof data.body !== 'string' || typeof data.imageUrl !== 'string') {
+            enqueueSnackbar('Received invalid or incomplete data from AI function.', { variant: 'error' });
+            throw new Error("Received invalid or incomplete data from AI function.");
+        }
+
+        setCampaignData(prev => ({
+            ...prev,
+            headlines: data.headlines,
+            selectedHeadlineIndex: 0,
+            body: data.body,
+            imageUrl: data.imageUrl
+        }));
+        enqueueSnackbar('AI content generated successfully!', { variant: 'success' });
+
+    } catch (error) {
+        console.error("Error calling generateAdContent function:", error);
+        const message = error.details?.message || error.message || 'Failed to generate AI content.';
+        enqueueSnackbar(`Error generating content: ${message}`, { variant: 'error' });
+        setCampaignData(prev => ({
+            ...prev,
+            headlines: [],
+            selectedHeadlineIndex: 0,
+            body: '',
+            imageUrl: ''
+        }));
+    } finally {
+        setIsGeneratingAI(false);
+    }
   };
 
   const handleSaveDraft = async () => {
-    if (!auth.currentUser) {
-        enqueueSnackbar('You must be logged in to save a draft.', { variant: 'error' });
-        return;
+    if (!auth.currentUser || !alertDetails || loadingDoc || !userDoc) {
+      enqueueSnackbar('Cannot save draft: missing user, alert, or settings data.', { variant: 'error' });
+      return;
     }
-    if (!alertDetails) {
-        enqueueSnackbar('Alert details are missing, cannot save draft.', { variant: 'error' });
-        return;
+    if (!campaignData.headlines || campaignData.headlines.length === 0) {
+      enqueueSnackbar('Please generate ad content first.', { variant: 'warning' });
+      return;
     }
     setIsSaving(true);
+    const selectedHeadline = campaignData.headlines[campaignData.selectedHeadlineIndex];
     const campaignDataToSave = {
       uid: auth.currentUser.uid,
       alertId: alertDetails.id,
       alertEvent: alertDetails.properties?.event || 'N/A',
-      copy: { // Save headline and body under 'copy' object
-        headline: campaignData.headline,
-        description: campaignData.body, // Save body as description in Firestore as per original request
+      copy: { 
+        headline: selectedHeadline, // Save the selected headline
+        description: campaignData.body,
       },
       imageUrl: campaignData.imageUrl,
       radius: campaignData.radius,
       status: 'Draft',
       createdAt: serverTimestamp(),
+      // Optionally save user settings snapshot at time of creation
+      settingsSnapshot: {
+          companyName: userDoc.companyName,
+          businessType: userDoc.businessType,
+          primaryColor: userDoc.brandingPrimaryColor,
+          // Add other relevant settings if needed
+      }
     };
     try {
       await addDoc(collection(db, 'campaigns'), campaignDataToSave);
@@ -128,23 +219,33 @@ const WizardLayout = () => {
   const getStepContent = (step) => {
     switch (step) {
       case 0:
-        return <PreviewStep 
-                    alertDetails={alertDetails} 
-                    onGenerateAICopy={handleGenerateAICopy} 
-                    campaignData={campaignData} 
+        return <PreviewStep
+                    alertDetails={alertDetails}
+                    onGenerateAICopy={handleGenerateAICopy}
+                    campaignData={campaignData}
                     onCampaignDataChange={handleCampaignDataChange}
                     isGenerating={isGeneratingAI}
+                    selectedProvider={selectedProvider}
+                    onProviderChange={setSelectedProvider}
                 />;
       case 1:
         return <TargetingStep radius={campaignData.radius} onRadiusChange={(r) => handleCampaignDataChange({ radius: r })} />;
       case 2:
-        return <ConfirmStep campaignData={{ ...campaignData, alertId: alertDetails?.id }} />;
+        // Pass selected headline to ConfirmStep
+        const finalCampaignData = { 
+            ...campaignData, 
+            headline: campaignData.headlines ? campaignData.headlines[campaignData.selectedHeadlineIndex] : '', 
+            alertId: alertDetails?.id 
+        };
+        // delete finalCampaignData.headlines; // Clean up if needed
+        // delete finalCampaignData.selectedHeadlineIndex;
+        return <ConfirmStep campaignData={finalCampaignData} />;
       default:
         return <Typography>Unknown step</Typography>;
     }
   };
 
-  if (loadingInitialAlert || loadingAlerts) {
+  if (loadingInitialAlert || loadingAlerts || loadingDoc) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><CircularProgress /> <Typography sx={{ ml: 2 }}>Loading wizard...</Typography></Box>;
   }
   if (errorAlerts) return <MuiAlert severity="error" sx={{m:2}}>Error loading alert data: {errorAlerts}</MuiAlert>;
@@ -179,7 +280,7 @@ const WizardLayout = () => {
         <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2, mt:2, borderTop: '1px solid #eee' }}>
           <Button color="inherit" disabled={activeStep === 0 || isSaving || isGeneratingAI} onClick={handleBack} sx={{ mr: 1 }}>Back</Button>
           <Box sx={{ flex: '1 1 auto' }} />
-          <Button onClick={handleNext} variant="contained" disabled={isSaving || isGeneratingAI}>
+          <Button onClick={handleNext} variant="contained" disabled={isSaving || isGeneratingAI || (activeStep === 0 && (!campaignData.headlines || campaignData.headlines.length === 0))}>
             {isSaving || isGeneratingAI ? <CircularProgress size={24} /> : (activeStep === steps.length - 1 ? 'Confirm & Save Draft' : 'Next')}
           </Button>
         </Box>

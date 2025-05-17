@@ -163,7 +163,7 @@ const MainAppLayout = ({ onRegionSelectForFetch, onRefresh }) => {
     <div className="App">
       {/* OnboardingDialog is now rendered in App before routing to MainAppLayout */}
       <header className="App-header">
-        <h1>BreezeCue</h1>
+        <h1>WeatherCue</h1>
         <div className="App-header-nav">
           <Button component={RouterLink} to="/" color="inherit" sx={{color: "white"}}>Dashboard</Button>
           <Button component={RouterLink} to="/campaigns" color="inherit" sx={{color: "white", marginLeft: '10px'}}>Campaigns</Button>
@@ -380,7 +380,7 @@ function App() {
       <Container component="main" maxWidth="xs" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
         <Paper elevation={3} sx={{ padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           <Typography component="h1" variant="h5">
-            Welcome to BreezeCue
+            Welcome to WeatherCue
           </Typography>
           <Box sx={{ mt: 1, mb: 3 }}>
             <Typography color="textSecondary">

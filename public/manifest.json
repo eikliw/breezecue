@@ -1,6 +1,6 @@
 {
-  "short_name": "BreezeCue",
-  "name": "BreezeCue",
+  "short_name": "WeatherCue",
+  "name": "WeatherCue",
   "icons": [
     {
       "src": "favicon.ico",
